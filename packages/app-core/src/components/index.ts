@@ -64,6 +64,8 @@ export * from "./PermissionsSection";
 export * from "./PluginsPageView";
 export * from "./PluginsView";
 export * from "./ProviderSwitcher";
+export * from "./PtyConsoleDrawer";
+export * from "./PtyTerminalPane";
 export * from "./RestartBanner";
 export * from "./RuntimeView";
 export * from "./SaveCommandModal";

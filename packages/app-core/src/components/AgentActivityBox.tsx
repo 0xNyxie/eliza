@@ -22,15 +22,25 @@ function deriveActivity(s: CodingAgentSession): string {
 
 interface AgentActivityBoxProps {
   sessions: CodingAgentSession[];
+  /** Called when the user clicks a session row. */
+  onSessionClick?: (sessionId: string) => void;
 }
 
-export function AgentActivityBox({ sessions }: AgentActivityBoxProps) {
+export function AgentActivityBox({
+  sessions,
+  onSessionClick,
+}: AgentActivityBoxProps) {
   if (!sessions || sessions.length === 0) return null;
 
   return (
     <div className="border-t border-border px-3 py-1.5 space-y-0.5 z-[1]">
       {sessions.map((s) => (
-        <div key={s.sessionId} className="flex items-center gap-1.5 min-w-0">
+        <button
+          key={s.sessionId}
+          type="button"
+          onClick={() => onSessionClick?.(s.sessionId)}
+          className="flex items-center gap-1.5 min-w-0 w-full text-left cursor-pointer hover:bg-bg-hover rounded px-1 -mx-1 transition-colors"
+        >
           <span
             className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
               STATUS_DOT[s.status] ?? "bg-muted"
@@ -42,7 +52,18 @@ export function AgentActivityBox({ sessions }: AgentActivityBoxProps) {
           <span className="text-[11px] text-muted truncate min-w-0">
             {s.lastActivity ?? deriveActivity(s)}
           </span>
-        </div>
+          <svg
+            className="ml-auto w-3 h-3 text-muted shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 15l-6-6-6 6" />
+          </svg>
+        </button>
       ))}
     </div>
   );

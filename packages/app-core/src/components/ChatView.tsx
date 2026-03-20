@@ -34,6 +34,7 @@ import {
   useState,
 } from "react";
 import { AgentActivityBox } from "./AgentActivityBox";
+import { PtyConsoleDrawer } from "./PtyConsoleDrawer";
 import { ChatComposer } from "./ChatComposer";
 import { ChatEmptyState, ChatMessage, TypingIndicator } from "./ChatMessage";
 import { MessageContent } from "./MessageContent";
@@ -516,6 +517,9 @@ export function ChatView({ variant = "default" }: ChatViewProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageDragOver, setImageDragOver] = useState(false);
+  const [ptyDrawerSessionId, setPtyDrawerSessionId] = useState<string | null>(
+    null,
+  );
 
   // ── Derived composer state ──────────────────────────────────────
   const isAgentStarting =
@@ -846,7 +850,21 @@ export function ChatView({ variant = "default" }: ChatViewProps) {
       </div>
 
       {/* Agent activity box — sticky status per active coding-agent task */}
-      <AgentActivityBox sessions={ptySessions} />
+      <AgentActivityBox
+        sessions={ptySessions}
+        onSessionClick={(id) =>
+          setPtyDrawerSessionId((prev) => (prev === id ? null : id))
+        }
+      />
+
+      {/* PTY console drawer — opens when a session row is clicked */}
+      {ptyDrawerSessionId && ptySessions.length > 0 && (
+        <PtyConsoleDrawer
+          activeSessionId={ptyDrawerSessionId}
+          sessions={ptySessions}
+          onClose={() => setPtyDrawerSessionId(null)}
+        />
+      )}
 
       {/* Share ingest notice */}
       {shareIngestNotice && (
