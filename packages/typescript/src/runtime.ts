@@ -4657,13 +4657,8 @@ IMPORTANT: Your response must ONLY contain the ${CONTAINER_START}${CONTAINER_END
         },
         "Embedding generation failed",
       );
-      // Return zero vector as fallback instead of trying to embed empty string
-      // Use cached dimension if available, otherwise default to 1536 (OpenAI's dimension)
-      const dimension = this.cachedEmbeddingDimension || 1536;
-      memory.embedding = new Array(dimension).fill(0);
-      this.logger.warn(
-        { src: "agent", agentId: this.agentId, dimension },
-        "Using zero vector for failed embedding",
+      throw new Error(
+        `Embedding generation failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
     return memory;
