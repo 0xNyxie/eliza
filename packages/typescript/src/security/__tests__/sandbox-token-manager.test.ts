@@ -140,6 +140,16 @@ describe("SandboxTokenManager", () => {
 			expect(output).not.toContain(`abc${longToken.slice(-3)}`); // no partial
 		});
 
+		it("should not rematch shorter secrets inside inserted tokens", () => {
+			const shortToken = tm.registerSecret("SHORT", SANDBOX_TOKEN_PREFIX);
+			const longToken = tm.registerSecret("LONG", `${SANDBOX_TOKEN_PREFIX}abcdef`);
+			const input = `value is ${SANDBOX_TOKEN_PREFIX}abcdef`;
+			const output = tm.tokenizeString(input);
+
+			expect(output).toBe(`value is ${longToken}`);
+			expect(output).not.toContain(shortToken);
+		});
+
 		it("should return empty string for empty input", () => {
 			expect(tm.tokenizeString("")).toBe("");
 		});

@@ -83,28 +83,19 @@ export class SandboxTokenManager {
 	/** Replace tokens → real values (outbound). */
 	detokenizeString(input: string): string {
 		if (!input || !input.includes(SANDBOX_TOKEN_PREFIX)) return input;
-		let result = input;
-		for (const [token, entry] of this.tokenToEntry) {
-			if (result.includes(token)) {
-				result = replaceAll(result, token, entry.realValue);
-			}
-		}
-		return result;
+		return replaceLiteralMatches(
+			input,
+			[...this.tokenToEntry.entries()].map(([token, entry]) => [
+				token,
+				entry.realValue,
+			]),
+		);
 	}
 
 	/** Replace real values → tokens (inbound). Longest-first to avoid partial matches. */
 	tokenizeString(input: string): string {
 		if (!input) return input;
-		let result = input;
-		const entries = [...this.realValueToToken.entries()].sort(
-			([a], [b]) => b.length - a.length,
-		);
-		for (const [realValue, token] of entries) {
-			if (result.includes(realValue)) {
-				result = replaceAll(result, realValue, token);
-			}
-		}
-		return result;
+		return replaceLiteralMatches(input, this.realValueToToken.entries());
 	}
 
 	static isToken(value: string): boolean {
@@ -141,7 +132,30 @@ function inferSecretType(key: string): SecretTokenMetadata["secretType"] {
 	return "other";
 }
 
-function replaceAll(str: string, search: string, replacement: string): string {
-	const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	return str.replace(new RegExp(escaped, "g"), replacement);
+function replaceLiteralMatches(
+	input: string,
+	replacements: Iterable<readonly [string, string]>,
+): string {
+	const sorted = [...replacements]
+		.filter(([search]) => search.length > 0)
+		.sort(([left], [right]) => right.length - left.length);
+	if (sorted.length === 0) {
+		return input;
+	}
+
+	let output = "";
+	let cursor = 0;
+	while (cursor < input.length) {
+		const match = sorted.find(([search]) => input.startsWith(search, cursor));
+		if (!match) {
+			output += input[cursor];
+			cursor += 1;
+			continue;
+		}
+
+		output += match[1];
+		cursor += match[0].length;
+	}
+
+	return output;
 }
