@@ -1,6 +1,13 @@
 name: Publish Core Alpha
 
 on:
+  push:
+    branches:
+      - shaw/core-alpha-111
+    paths:
+      - .github/workflows/publish-core-alpha.yaml
+      - bun.lock
+      - packages/typescript/**
   workflow_dispatch:
     inputs:
       version:
@@ -42,16 +49,21 @@ jobs:
 
       - name: Verify requested version matches package version
         run: |
+          TARGET_VERSION="${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}"
+          if [[ -z "${TARGET_VERSION}" ]]; then
+            TARGET_VERSION=$(jq -r '.version' packages/typescript/package.json)
+          fi
           PACKAGE_VERSION=$(jq -r '.version' packages/typescript/package.json)
-          if [[ "${PACKAGE_VERSION}" != "${{ inputs.version }}" ]]; then
-            echo "Expected packages/typescript/package.json to be ${{ inputs.version }}, got ${PACKAGE_VERSION}"
+          if [[ "${PACKAGE_VERSION}" != "${TARGET_VERSION}" ]]; then
+            echo "Expected packages/typescript/package.json to be ${TARGET_VERSION}, got ${PACKAGE_VERSION}"
             exit 1
           fi
+          echo "TARGET_VERSION=${TARGET_VERSION}" >> "$GITHUB_ENV"
 
       - name: Verify version is not already published
         run: |
-          if npm view "@elizaos/core@${{ inputs.version }}" version >/dev/null 2>&1; then
-            echo "@elizaos/core@${{ inputs.version }} is already published"
+          if npm view "@elizaos/core@${TARGET_VERSION}" version >/dev/null 2>&1; then
+            echo "@elizaos/core@${TARGET_VERSION} is already published"
             exit 1
           fi
 
