@@ -12,14 +12,14 @@ export const NEURO_SOURCE = "neuro";
 
 // Signal kinds
 export const SIGNALS = {
-	REACTION_POSITIVE: "reaction_positive",
-	REACTION_NEGATIVE: "reaction_negative",
-	REACTION_NEUTRAL: "reaction_neutral",
-	USER_CORRECTION: "user_correction",
-	CONVERSATION_CONTINUED: "conversation_continued",
-	RESPONSE_LATENCY: "response_latency",
-	LENGTH_APPROPRIATENESS: "length_appropriateness",
-	EVALUATOR_AGREEMENT: "evaluator_agreement",
+  REACTION_POSITIVE: "reaction_positive",
+  REACTION_NEGATIVE: "reaction_negative",
+  REACTION_NEUTRAL: "reaction_neutral",
+  USER_CORRECTION: "user_correction",
+  CONVERSATION_CONTINUED: "conversation_continued",
+  RESPONSE_LATENCY: "response_latency",
+  LENGTH_APPROPRIATENESS: "length_appropriateness",
+  EVALUATOR_AGREEMENT: "evaluator_agreement",
 } as const;
 
 /**
@@ -27,34 +27,34 @@ export const SIGNALS = {
  * Values: 1.0 = positive, 0.5 = neutral, 0.0 = negative
  */
 export const EMOJI_SENTIMENT: Record<string, number> = {
-	// Positive
-	"👍": 1.0,
-	"❤️": 1.0,
-	"🔥": 1.0,
-	"⭐": 1.0,
-	"🌟": 1.0,
-	"💯": 1.0,
-	"🙏": 1.0,
-	"😊": 1.0,
-	"😄": 1.0,
-	"😍": 1.0,
-	"🎉": 1.0,
-	"✅": 1.0,
-	"💪": 1.0,
-	"+1": 1.0,
+  // Positive
+  "👍": 1.0,
+  "❤️": 1.0,
+  "🔥": 1.0,
+  "⭐": 1.0,
+  "🌟": 1.0,
+  "💯": 1.0,
+  "🙏": 1.0,
+  "😊": 1.0,
+  "😄": 1.0,
+  "😍": 1.0,
+  "🎉": 1.0,
+  "✅": 1.0,
+  "💪": 1.0,
+  "+1": 1.0,
 
-	// Neutral
-	"🤔": 0.5,
-	"😐": 0.5,
-	"🫤": 0.5,
+  // Neutral
+  "🤔": 0.5,
+  "😐": 0.5,
+  "🫤": 0.5,
 
-	// Negative
-	"👎": 0.0,
-	"😠": 0.0,
-	"😡": 0.0,
-	"🤬": 0.0,
-	"❌": 0.0,
-	"-1": 0.0,
+  // Negative
+  "👎": 0.0,
+  "😠": 0.0,
+  "😡": 0.0,
+  "🤬": 0.0,
+  "❌": 0.0,
+  "-1": 0.0,
 };
 
 /** WHY 2 minutes: short enough that a reply within the window is likely a

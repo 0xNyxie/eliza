@@ -18,34 +18,34 @@ import type { OptimizedPromptArtifact } from "./types.ts";
  * uses line-bounded regex to reliably remove them without false positives.
  */
 export function mergeArtifactIntoPrompt(
-	baseTemplate: string,
-	artifact: OptimizedPromptArtifact,
+  baseTemplate: string,
+  artifact: OptimizedPromptArtifact,
 ): string {
-	const sections: string[] = [];
+  const sections: string[] = [];
 
-	if (artifact.playbook?.trim()) {
-		sections.push(
-			`[OPTIMIZED PLAYBOOK]\n${artifact.playbook.trim()}\n[/OPTIMIZED PLAYBOOK]`,
-		);
-	}
+  if (artifact.playbook?.trim()) {
+    sections.push(
+      `[OPTIMIZED PLAYBOOK]\n${artifact.playbook.trim()}\n[/OPTIMIZED PLAYBOOK]`,
+    );
+  }
 
-	if (artifact.instructions?.trim()) {
-		sections.push(
-			`[OPTIMIZED INSTRUCTIONS]\n${artifact.instructions.trim()}\n[/OPTIMIZED INSTRUCTIONS]`,
-		);
-	}
+  if (artifact.instructions?.trim()) {
+    sections.push(
+      `[OPTIMIZED INSTRUCTIONS]\n${artifact.instructions.trim()}\n[/OPTIMIZED INSTRUCTIONS]`,
+    );
+  }
 
-	if (artifact.demos?.trim()) {
-		sections.push(
-			`[OPTIMIZED EXAMPLES]\n${artifact.demos.trim()}\n[/OPTIMIZED EXAMPLES]`,
-		);
-	}
+  if (artifact.demos?.trim()) {
+    sections.push(
+      `[OPTIMIZED EXAMPLES]\n${artifact.demos.trim()}\n[/OPTIMIZED EXAMPLES]`,
+    );
+  }
 
-	if (sections.length === 0) {
-		return baseTemplate;
-	}
+  if (sections.length === 0) {
+    return baseTemplate;
+  }
 
-	return `${sections.join("\n\n")}\n\n${baseTemplate}`;
+  return `${sections.join("\n\n")}\n\n${baseTemplate}`;
 }
 
 /**
@@ -53,11 +53,11 @@ export function mergeArtifactIntoPrompt(
  * Useful for debugging.
  */
 export function isMergedTemplate(template: string): boolean {
-	return (
-		template.includes("[OPTIMIZED PLAYBOOK]") ||
-		template.includes("[OPTIMIZED INSTRUCTIONS]") ||
-		template.includes("[OPTIMIZED EXAMPLES]")
-	);
+  return (
+    template.includes("[OPTIMIZED PLAYBOOK]") ||
+    template.includes("[OPTIMIZED INSTRUCTIONS]") ||
+    template.includes("[OPTIMIZED EXAMPLES]")
+  );
 }
 
 /**
@@ -65,20 +65,20 @@ export function isMergedTemplate(template: string): boolean {
  * Used when we need to re-merge with a newer artifact.
  */
 export function stripMergedContent(template: string): string {
-	// Match only the exact three marker pairs produced by mergeArtifactIntoPrompt.
-	// Each tag must be on its own line (preceded by newline or start-of-string)
-	// to avoid false matches on substrings inside user content.
-	return template
-		.replace(
-			/(?:^|\n)\[OPTIMIZED PLAYBOOK\]\n[\s\S]*?\n\[\/OPTIMIZED PLAYBOOK\]\s*/g,
-			"",
-		)
-		.replace(
-			/(?:^|\n)\[OPTIMIZED INSTRUCTIONS\]\n[\s\S]*?\n\[\/OPTIMIZED INSTRUCTIONS\]\s*/g,
-			"",
-		)
-		.replace(
-			/(?:^|\n)\[OPTIMIZED EXAMPLES\]\n[\s\S]*?\n\[\/OPTIMIZED EXAMPLES\]\s*/g,
-			"",
-		);
+  // Match only the exact three marker pairs produced by mergeArtifactIntoPrompt.
+  // Each tag must be on its own line (preceded by newline or start-of-string)
+  // to avoid false matches on substrings inside user content.
+  return template
+    .replace(
+      /(?:^|\n)\[OPTIMIZED PLAYBOOK\]\n[\s\S]*?\n\[\/OPTIMIZED PLAYBOOK\]\s*/g,
+      "",
+    )
+    .replace(
+      /(?:^|\n)\[OPTIMIZED INSTRUCTIONS\]\n[\s\S]*?\n\[\/OPTIMIZED INSTRUCTIONS\]\s*/g,
+      "",
+    )
+    .replace(
+      /(?:^|\n)\[OPTIMIZED EXAMPLES\]\n[\s\S]*?\n\[\/OPTIMIZED EXAMPLES\]\s*/g,
+      "",
+    );
 }

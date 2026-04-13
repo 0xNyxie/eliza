@@ -12,8 +12,8 @@
  * (`artifact.json`, `history.jsonl`, `profile_*.json`).
  */
 
-import { logger } from "@elizaos/core";
 import type { IAgentRuntime } from "@elizaos/core";
+import { logger } from "@elizaos/core";
 import { readOptimizationAIConfig } from "./adapters/optimization-ai.ts";
 import { getSlotProfileManager } from "./index.ts";
 import { readPromptRegistryEntry } from "./prompt-registry.ts";
@@ -31,186 +31,186 @@ const FAILURE_COOLDOWN_MS = 10 * 60 * 1000;
 const MAX_COOLDOWN_ENTRIES = 1000;
 
 function lockKey(
-	modelId: string,
-	slotKey: string,
-	promptKey: string,
-	schemaFingerprint: string,
+  modelId: string,
+  slotKey: string,
+  promptKey: string,
+  schemaFingerprint: string,
 ): string {
-	return `${modelId}\0${slotKey}\0${promptKey}\0${schemaFingerprint}`;
+  return `${modelId}\0${slotKey}\0${promptKey}\0${schemaFingerprint}`;
 }
 
 /** One auto-opt schedule per RUN_ENDED batch for this trace identity. */
 export function autoOptimizationDedupeKey(trace: ExecutionTrace): string {
-	return lockKey(
-		trace.modelId,
-		trace.modelSlot,
-		trace.promptKey,
-		trace.schemaFingerprint,
-	);
+  return lockKey(
+    trace.modelId,
+    trace.modelSlot,
+    trace.promptKey,
+    trace.schemaFingerprint,
+  );
 }
 
 function parseSignalWeights(
-	raw: string | boolean | number | null,
+  raw: string | boolean | number | null,
 ): Record<string, number> | undefined {
-	if (raw == null || typeof raw !== "string" || !raw.trim()) return undefined;
-	try {
-		return JSON.parse(raw) as Record<string, number>;
-	} catch {
-		return undefined;
-	}
+  if (raw == null || typeof raw !== "string" || !raw.trim()) return undefined;
+  try {
+    return JSON.parse(raw) as Record<string, number>;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
  * Fire-and-forget from finalizer: may run OptimizationRunner and write artifact.json.
  */
 export async function maybeRunAutoPromptOptimization(
-	runtime: IAgentRuntime,
-	optDir: string,
-	trace: ExecutionTrace,
+  runtime: IAgentRuntime,
+  optDir: string,
+  trace: ExecutionTrace,
 ): Promise<void> {
-	if (!runtime.getPromptOptimizationHooks()) {
-		return;
-	}
+  if (!runtime.getPromptOptimizationHooks()) {
+    return;
+  }
 
-	const { modelId, modelSlot, promptKey, schemaFingerprint } = trace;
-	const key = lockKey(modelId, modelSlot, promptKey, schemaFingerprint);
+  const { modelId, modelSlot, promptKey, schemaFingerprint } = trace;
+  const key = lockKey(modelId, modelSlot, promptKey, schemaFingerprint);
 
-	const prev = runLocks.get(key) ?? Promise.resolve();
-	// Use .then(fn, fn) to handle both resolve and reject paths, preventing
-	// a rejected promise from permanently blocking future auto-optimization
-	const next = prev.then(
-		() => doAutoRun(runtime, optDir, trace),
-		() => doAutoRun(runtime, optDir, trace),
-	);
-	runLocks.set(key, next);
-	try {
-		await next;
-	} finally {
-		// Clean up resolved lock to prevent unbounded memory growth
-		if (runLocks.get(key) === next) {
-			runLocks.delete(key);
-		}
-	}
+  const prev = runLocks.get(key) ?? Promise.resolve();
+  // Use .then(fn, fn) to handle both resolve and reject paths, preventing
+  // a rejected promise from permanently blocking future auto-optimization
+  const next = prev.then(
+    () => doAutoRun(runtime, optDir, trace),
+    () => doAutoRun(runtime, optDir, trace),
+  );
+  runLocks.set(key, next);
+  try {
+    await next;
+  } finally {
+    // Clean up resolved lock to prevent unbounded memory growth
+    if (runLocks.get(key) === next) {
+      runLocks.delete(key);
+    }
+  }
 }
 
 async function doAutoRun(
-	runtime: IAgentRuntime,
-	optDir: string,
-	trace: ExecutionTrace,
+  runtime: IAgentRuntime,
+  optDir: string,
+  trace: ExecutionTrace,
 ): Promise<void> {
-	const { modelId, modelSlot, promptKey, schemaFingerprint } = trace;
-	const key = lockKey(modelId, modelSlot, promptKey, schemaFingerprint);
+  const { modelId, modelSlot, promptKey, schemaFingerprint } = trace;
+  const key = lockKey(modelId, modelSlot, promptKey, schemaFingerprint);
 
-	const now = Date.now();
-	const until = failureCooldownUntil.get(key);
-	if (until !== undefined && now < until) {
-		return;
-	}
+  const now = Date.now();
+  const until = failureCooldownUntil.get(key);
+  if (until !== undefined && now < until) {
+    return;
+  }
 
-	// Prune expired cooldown entries to prevent unbounded map growth
-	if (failureCooldownUntil.size > MAX_COOLDOWN_ENTRIES) {
-		for (const [k, expiry] of failureCooldownUntil) {
-			if (expiry <= now) {
-				failureCooldownUntil.delete(k);
-			}
-		}
-	}
+  // Prune expired cooldown entries to prevent unbounded map growth
+  if (failureCooldownUntil.size > MAX_COOLDOWN_ENTRIES) {
+    for (const [k, expiry] of failureCooldownUntil) {
+      if (expiry <= now) {
+        failureCooldownUntil.delete(k);
+      }
+    }
+  }
 
-	const profileManager = getSlotProfileManager(optDir);
-	const profile = await profileManager.get(modelId, modelSlot, promptKey);
-	const ready =
-		profile.optimization.needsReoptimization ||
-		profileManager.shouldReoptimize(profile);
-	if (!ready) {
-		return;
-	}
+  const profileManager = getSlotProfileManager(optDir);
+  const profile = await profileManager.get(modelId, modelSlot, promptKey);
+  const ready =
+    profile.optimization.needsReoptimization ||
+    profileManager.shouldReoptimize(profile);
+  if (!ready) {
+    return;
+  }
 
-	const registry = await readPromptRegistryEntry(
-		optDir,
-		promptKey,
-		schemaFingerprint,
-	);
-	if (!registry) {
-		failureCooldownUntil.set(key, Date.now() + FAILURE_COOLDOWN_MS);
-		logger.warn(
-			{
-				src: "optimization:auto",
-				modelId,
-				slotKey: modelSlot,
-				promptKey,
-				schemaFingerprint,
-			},
-			"Auto optimization skipped: no prompt registry entry (DPE has not recorded this prompt yet)",
-		);
-		return;
-	}
+  const registry = await readPromptRegistryEntry(
+    optDir,
+    promptKey,
+    schemaFingerprint,
+  );
+  if (!registry) {
+    failureCooldownUntil.set(key, Date.now() + FAILURE_COOLDOWN_MS);
+    logger.warn(
+      {
+        src: "optimization:auto",
+        modelId,
+        slotKey: modelSlot,
+        promptKey,
+        schemaFingerprint,
+      },
+      "Auto optimization skipped: no prompt registry entry (DPE has not recorded this prompt yet)",
+    );
+    return;
+  }
 
-	const weightsRaw = runtime.getSetting?.("PROMPT_OPT_SIGNAL_WEIGHTS") ?? null;
-	const signalWeights = {
-		...DEFAULT_SIGNAL_WEIGHTS,
-		...parseSignalWeights(weightsRaw),
-	};
+  const weightsRaw = runtime.getSetting?.("PROMPT_OPT_SIGNAL_WEIGHTS") ?? null;
+  const signalWeights = {
+    ...DEFAULT_SIGNAL_WEIGHTS,
+    ...parseSignalWeights(weightsRaw),
+  };
 
-	const phase4AiConfigured = readOptimizationAIConfig(runtime) != null;
-	logger.info(
-		{
-			src: "optimization:auto",
-			modelId,
-			slotKey: modelSlot,
-			promptKey,
-			phase4AiConfigured,
-		},
-		phase4AiConfigured
-			? "Automatic prompt optimization run starting (GEPA/ACE may call remote LLMs)"
-			: "Automatic prompt optimization run starting (GEPA/ACE stubs — set OPTIMIZATION_AI_PROVIDER, OPTIMIZATION_AI_API_KEY, OPTIMIZATION_AI_MODEL for Phase 4)",
-	);
+  const phase4AiConfigured = readOptimizationAIConfig(runtime) != null;
+  logger.info(
+    {
+      src: "optimization:auto",
+      modelId,
+      slotKey: modelSlot,
+      promptKey,
+      phase4AiConfigured,
+    },
+    phase4AiConfigured
+      ? "Automatic prompt optimization run starting (GEPA/ACE may call remote LLMs)"
+      : "Automatic prompt optimization run starting (GEPA/ACE stubs — set OPTIMIZATION_AI_PROVIDER, OPTIMIZATION_AI_API_KEY, OPTIMIZATION_AI_MODEL for Phase 4)",
+  );
 
-	const runner = new OptimizationRunner();
-	const result = await runner.run({
-		rootDir: optDir,
-		modelId,
-		slotKey: modelSlot,
-		promptKey,
-		promptTemplate: registry.promptTemplate,
-		schema: registry.schema,
-		signalWeights,
-		// WHY: without `runtime`, runner cannot read OPTIMIZATION_AI_*; GEPA/ACE
-		// would always stub even when the operator configured AI stages.
-		runtime,
-		onProgress: (stage, progress, message) => {
-			logger.debug(
-				{ src: "optimization:auto", stage, progress, message },
-				"optimization progress",
-			);
-		},
-	});
+  const runner = new OptimizationRunner();
+  const result = await runner.run({
+    rootDir: optDir,
+    modelId,
+    slotKey: modelSlot,
+    promptKey,
+    promptTemplate: registry.promptTemplate,
+    schema: registry.schema,
+    signalWeights,
+    // WHY: without `runtime`, runner cannot read OPTIMIZATION_AI_*; GEPA/ACE
+    // would always stub even when the operator configured AI stages.
+    runtime,
+    onProgress: (stage, progress, message) => {
+      logger.debug(
+        { src: "optimization:auto", stage, progress, message },
+        "optimization progress",
+      );
+    },
+  });
 
-	if (!result.success) {
-		failureCooldownUntil.set(key, Date.now() + FAILURE_COOLDOWN_MS);
-		logger.warn(
-			{
-				src: "optimization:auto",
-				modelId,
-				slotKey: modelSlot,
-				promptKey,
-				error: result.error,
-			},
-			"Automatic prompt optimization failed",
-		);
-		return;
-	}
+  if (!result.success) {
+    failureCooldownUntil.set(key, Date.now() + FAILURE_COOLDOWN_MS);
+    logger.warn(
+      {
+        src: "optimization:auto",
+        modelId,
+        slotKey: modelSlot,
+        promptKey,
+        error: result.error,
+      },
+      "Automatic prompt optimization failed",
+    );
+    return;
+  }
 
-	failureCooldownUntil.delete(key);
-	logger.info(
-		{
-			src: "optimization:auto",
-			modelId,
-			slotKey: modelSlot,
-			promptKey,
-			baselineScore: result.baselineScore,
-			finalScore: result.finalScore,
-			tracesUsed: result.tracesUsed,
-		},
-		"Automatic prompt optimization complete",
-	);
+  failureCooldownUntil.delete(key);
+  logger.info(
+    {
+      src: "optimization:auto",
+      modelId,
+      slotKey: modelSlot,
+      promptKey,
+      baselineScore: result.baselineScore,
+      finalScore: result.finalScore,
+      tracesUsed: result.tracesUsed,
+    },
+    "Automatic prompt optimization complete",
+  );
 }

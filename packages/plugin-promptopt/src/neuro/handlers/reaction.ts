@@ -18,51 +18,51 @@ import type { IAgentRuntime, MessagePayload } from "@elizaos/core";
 import { EMOJI_SENTIMENT, NEURO_SOURCE, SIGNALS } from "../signals.ts";
 
 export async function handleReaction(
-	payload: MessagePayload,
-	runtime: IAgentRuntime,
+  payload: MessagePayload,
+  runtime: IAgentRuntime,
 ): Promise<void> {
-	const { message } = payload;
-	if (!message?.content) return;
+  const { message } = payload;
+  if (!message?.content) return;
 
-	// Extract emoji from message content
-	const emoji =
-		typeof message.content === "string"
-			? message.content
-			: ((message.content as Record<string, unknown>).text ?? "");
-	const emojiStr = String(emoji).trim();
+  // Extract emoji from message content
+  const emoji =
+    typeof message.content === "string"
+      ? message.content
+      : ((message.content as Record<string, unknown>).text ?? "");
+  const emojiStr = String(emoji).trim();
 
-	const sentiment = EMOJI_SENTIMENT[emojiStr];
-	if (sentiment === undefined) return;
+  const sentiment = EMOJI_SENTIMENT[emojiStr];
+  if (sentiment === undefined) return;
 
-	// Determine runId to attach signal to
-	const runId = (message as unknown as Record<string, unknown>).runId as
-		| string
-		| undefined;
-	if (!runId) return;
+  // Determine runId to attach signal to
+  const runId = (message as unknown as Record<string, unknown>).runId as
+    | string
+    | undefined;
+  if (!runId) return;
 
-	if (sentiment >= 0.7) {
-		runtime.enrichTrace(runId, {
-			source: NEURO_SOURCE,
-			kind: SIGNALS.REACTION_POSITIVE,
-			value: sentiment,
-			reason: `User reaction ${emojiStr} mapped to positive sentiment`,
-			metadata: { emoji: emojiStr, messageId: message.id },
-		});
-	} else if (sentiment <= 0.3) {
-		runtime.enrichTrace(runId, {
-			source: NEURO_SOURCE,
-			kind: SIGNALS.REACTION_NEGATIVE,
-			value: sentiment,
-			reason: `User reaction ${emojiStr} mapped to negative sentiment`,
-			metadata: { emoji: emojiStr, messageId: message.id },
-		});
-	} else {
-		runtime.enrichTrace(runId, {
-			source: NEURO_SOURCE,
-			kind: SIGNALS.REACTION_NEUTRAL,
-			value: sentiment,
-			reason: `User reaction ${emojiStr} mapped to neutral sentiment`,
-			metadata: { emoji: emojiStr, messageId: message.id },
-		});
-	}
+  if (sentiment >= 0.7) {
+    runtime.enrichTrace(runId, {
+      source: NEURO_SOURCE,
+      kind: SIGNALS.REACTION_POSITIVE,
+      value: sentiment,
+      reason: `User reaction ${emojiStr} mapped to positive sentiment`,
+      metadata: { emoji: emojiStr, messageId: message.id },
+    });
+  } else if (sentiment <= 0.3) {
+    runtime.enrichTrace(runId, {
+      source: NEURO_SOURCE,
+      kind: SIGNALS.REACTION_NEGATIVE,
+      value: sentiment,
+      reason: `User reaction ${emojiStr} mapped to negative sentiment`,
+      metadata: { emoji: emojiStr, messageId: message.id },
+    });
+  } else {
+    runtime.enrichTrace(runId, {
+      source: NEURO_SOURCE,
+      kind: SIGNALS.REACTION_NEUTRAL,
+      value: sentiment,
+      reason: `User reaction ${emojiStr} mapped to neutral sentiment`,
+      metadata: { emoji: emojiStr, messageId: message.id },
+    });
+  }
 }

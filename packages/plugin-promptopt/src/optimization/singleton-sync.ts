@@ -11,25 +11,25 @@
  */
 
 export type SlotProfileCacheInvalidator = (
-	rootDir: string,
-	modelId: string,
-	slotKey: string,
-	promptKey: string,
+  rootDir: string,
+  modelId: string,
+  slotKey: string,
+  promptKey: string,
 ) => void;
 
 let invalidator: SlotProfileCacheInvalidator | null = null;
 
 export function registerSlotProfileCacheInvalidator(
-	fn: SlotProfileCacheInvalidator,
+  fn: SlotProfileCacheInvalidator,
 ): void {
-	invalidator = fn;
+  invalidator = fn;
 }
 
 export function invalidateSlotProfileProcessCache(
-	rootDir: string,
-	modelId: string,
-	slotKey: string,
-	promptKey: string,
+  rootDir: string,
+  modelId: string,
+  slotKey: string,
+  promptKey: string,
 ): void {
-	invalidator?.(rootDir, modelId, slotKey, promptKey);
+  invalidator?.(rootDir, modelId, slotKey, promptKey);
 }
